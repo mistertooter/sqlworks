@@ -1,0 +1,1491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>How SQL Works - Animated</title>
+
+<style>
+/* =========================================================
+   SQL PROCESSING ANIMATION
+   Instagram-friendly 3:4 presentation
+   ========================================================= */
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 25px;
+    background:
+        radial-gradient(circle at 50% 10%, #16396b 0%, transparent 32%),
+        radial-gradient(circle at 15% 70%, #35145f 0%, transparent 28%),
+        linear-gradient(180deg, #030711, #050b19 55%, #02040a);
+    color: white;
+    font-family: Inter, Arial, Helvetica, sans-serif;
+}
+
+/* Main Instagram frame */
+
+.sql-app {
+    position: relative;
+    width: min(900px, 96vw);
+    aspect-ratio: 3 / 4;
+    overflow: hidden;
+
+    background:
+        radial-gradient(circle at 50% 35%, rgba(0,212,255,.08), transparent 35%),
+        linear-gradient(180deg, #071120, #030711);
+
+    border: 1px solid rgba(87, 200, 255, .35);
+    border-radius: 28px;
+
+    box-shadow:
+        0 0 50px rgba(0, 180, 255, .12),
+        inset 0 0 70px rgba(0, 0, 0, .65);
+}
+
+/* animated grid */
+
+.sql-app::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+
+    background-image:
+        linear-gradient(rgba(0,200,255,.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,200,255,.035) 1px, transparent 1px);
+
+    background-size: 32px 32px;
+
+    animation: gridMove 12s linear infinite;
+
+    pointer-events: none;
+}
+
+@keyframes gridMove {
+    to {
+        background-position: 0 64px;
+    }
+}
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+header {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    padding: 28px 20px 12px;
+}
+
+header h1 {
+    margin: 0;
+
+    font-size: clamp(25px, 4vw, 42px);
+    letter-spacing: 3px;
+
+    background: linear-gradient(
+        90deg,
+        #00eaff,
+        #ffffff,
+        #a96cff
+    );
+
+    -webkit-background-clip: text;
+    color: transparent;
+
+    text-shadow: 0 0 25px rgba(0,220,255,.25);
+}
+
+header p {
+    color: #7fa6c8;
+    letter-spacing: 2px;
+    font-size: 12px;
+    margin: 7px 0 0;
+}
+
+/* =========================================================
+   QUERY WINDOW
+   ========================================================= */
+
+.query-panel {
+    position: relative;
+    z-index: 2;
+
+    width: 88%;
+    margin: 10px auto 0;
+
+    background: rgba(7, 18, 34, .88);
+
+    border: 1px solid #1d4161;
+    border-radius: 15px;
+
+    box-shadow:
+        inset 0 0 25px rgba(0,0,0,.7),
+        0 10px 30px rgba(0,0,0,.25);
+
+    overflow: hidden;
+}
+
+.query-top {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    padding: 9px 14px;
+
+    background: #0c1c30;
+    border-bottom: 1px solid #1b3955;
+}
+
+.dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+}
+
+.red { background: #ff4d68; }
+.yellow { background: #ffc94d; }
+.green { background: #35e88b; }
+
+.query-title {
+    margin-left: 8px;
+    color: #70dfff;
+    font-size: 11px;
+    letter-spacing: 1px;
+}
+
+.query-code {
+    padding: 13px 18px 15px;
+
+    font-family: Consolas, Monaco, monospace;
+    font-size: clamp(11px, 1.65vw, 15px);
+    line-height: 1.55;
+}
+
+.sql-line {
+    display: block;
+    padding: 2px 7px;
+
+    border-left: 3px solid transparent;
+    border-radius: 4px;
+
+    color: #71849b;
+
+    transition:
+        color .4s,
+        background .4s,
+        border .4s,
+        transform .4s;
+}
+
+.sql-line.active {
+    color: white;
+    transform: translateX(5px);
+
+    background:
+        linear-gradient(
+            90deg,
+            rgba(0,220,255,.17),
+            transparent
+        );
+
+    border-left-color: var(--stage);
+}
+
+.keyword {
+    color: #5ee7ff;
+    font-weight: bold;
+}
+
+.function {
+    color: #ffbd4a;
+}
+
+.number {
+    color: #ff719c;
+}
+
+/* =========================================================
+   PIPELINE
+   ========================================================= */
+
+.pipeline {
+    position: relative;
+    z-index: 2;
+
+    width: 92%;
+    margin: 17px auto 13px;
+
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+}
+
+.stage {
+    position: relative;
+
+    min-height: 58px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    padding: 5px;
+
+    text-align: center;
+
+    background: #101d31;
+    border: 1px solid #213b59;
+    border-radius: 9px;
+
+    color: #7890aa;
+
+    font-size: clamp(8px, 1.25vw, 12px);
+    font-weight: bold;
+
+    transition: .5s;
+}
+
+.stage.active {
+    color: #04101a;
+
+    background: var(--stage);
+
+    transform: translateY(-5px) scale(1.05);
+
+    box-shadow:
+        0 0 12px var(--stage),
+        0 0 28px color-mix(in srgb, var(--stage), transparent 55%);
+}
+
+/* =========================================================
+   MAIN DATABASE VISUALIZATION
+   ========================================================= */
+
+.visualizer {
+    position: relative;
+    z-index: 2;
+
+    width: 88%;
+    height: 39%;
+
+    margin: 0 auto;
+
+    display: grid;
+    grid-template-columns: 68% 29%;
+    gap: 3%;
+}
+
+/* table area */
+
+.table-panel,
+.engine-panel {
+    background: rgba(6, 16, 31, .91);
+
+    border: 1px solid #1c3956;
+    border-radius: 14px;
+
+    box-shadow:
+        inset 0 0 35px rgba(0,0,0,.65);
+
+    overflow: hidden;
+}
+
+.table-title {
+    height: 42px;
+
+    display: flex;
+    align-items: center;
+
+    padding: 0 15px;
+
+    border-bottom: 1px solid #1d3b58;
+
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 1px;
+
+    color: var(--stage);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+
+    font-size: clamp(9px, 1.45vw, 13px);
+}
+
+th {
+    padding: 9px 5px;
+
+    background: #152842;
+
+    color: #bfeaff;
+    text-align: left;
+}
+
+td {
+    padding: 8px 5px;
+    border-bottom: 1px solid rgba(90,130,170,.12);
+}
+
+tbody tr {
+    transition:
+        opacity .5s,
+        transform .5s,
+        background .5s;
+}
+
+tbody tr:nth-child(even) {
+    background: rgba(30,60,90,.16);
+}
+
+tbody tr.rejected {
+    opacity: .2;
+    transform: translateX(-20px);
+    background: rgba(255,50,90,.2);
+}
+
+tbody tr.highlight {
+    background: rgba(0,220,255,.13);
+}
+
+/* =========================================================
+   SQL ENGINE
+   ========================================================= */
+
+.engine-panel {
+    position: relative;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    padding: 18px 10px;
+}
+
+.engine-label {
+    color: #738ba5;
+    font-size: 10px;
+    letter-spacing: 2px;
+}
+
+.engine-core {
+    position: relative;
+
+    width: clamp(80px, 13vw, 120px);
+    height: clamp(80px, 13vw, 120px);
+
+    margin: 19px 0;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    border-radius: 50%;
+
+    background:
+        radial-gradient(
+            circle,
+            white 0 5%,
+            var(--stage) 18%,
+            #082034 55%,
+            #020710 72%
+        );
+
+    border: 2px solid var(--stage);
+
+    box-shadow:
+        0 0 15px var(--stage),
+        0 0 50px color-mix(in srgb, var(--stage), transparent 55%);
+
+    animation: corePulse 1.3s ease-in-out infinite;
+}
+
+.engine-core::before,
+.engine-core::after {
+    content: "";
+    position: absolute;
+
+    border-radius: 50%;
+    border: 1px solid var(--stage);
+
+    animation: ring 2s linear infinite;
+}
+
+.engine-core::before {
+    inset: -10px;
+}
+
+.engine-core::after {
+    inset: -21px;
+    animation-delay: .8s;
+}
+
+@keyframes corePulse {
+    50% {
+        transform: scale(1.06);
+    }
+}
+
+@keyframes ring {
+    0% {
+        opacity: .9;
+        transform: scale(.85);
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(1.25);
+    }
+}
+
+.engine-core strong {
+    position: relative;
+    z-index: 2;
+
+    color: white;
+    font-size: clamp(18px, 3vw, 28px);
+
+    text-shadow: 0 0 10px #000;
+}
+
+.current-stage {
+    color: var(--stage);
+
+    font-size: clamp(16px, 2.5vw, 23px);
+    font-weight: bold;
+
+    text-align: center;
+}
+
+.stage-description {
+    margin-top: 10px;
+
+    max-width: 180px;
+
+    color: #9eb1c6;
+    text-align: center;
+
+    font-size: clamp(9px, 1.3vw, 12px);
+    line-height: 1.5;
+}
+
+/* =========================================================
+   DATA PARTICLES
+   ========================================================= */
+
+.data-stream {
+    position: absolute;
+
+    left: 0;
+    right: 0;
+    bottom: 6px;
+
+    height: 25px;
+
+    overflow: hidden;
+}
+
+.packet {
+    position: absolute;
+
+    width: 7px;
+    height: 7px;
+
+    border-radius: 50%;
+
+    background: var(--stage);
+
+    box-shadow: 0 0 10px var(--stage);
+
+    animation: packetMove 2.7s linear infinite;
+}
+
+.packet:nth-child(2) { animation-delay: .4s; }
+.packet:nth-child(3) { animation-delay: .8s; }
+.packet:nth-child(4) { animation-delay: 1.2s; }
+.packet:nth-child(5) { animation-delay: 1.6s; }
+
+@keyframes packetMove {
+    from {
+        left: -5%;
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    90% {
+        opacity: 1;
+    }
+
+    to {
+        left: 105%;
+        opacity: 0;
+    }
+}
+
+/* =========================================================
+   EXPLANATION
+   ========================================================= */
+
+.explanation {
+    position: relative;
+    z-index: 2;
+
+    width: 88%;
+    margin: 15px auto 0;
+
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+}
+
+.info-box {
+    padding: 10px 12px;
+
+    background: rgba(10,23,42,.9);
+
+    border: 1px solid #1b3957;
+    border-radius: 10px;
+
+    color: #92a9c0;
+
+    font-size: clamp(9px, 1.3vw, 12px);
+    line-height: 1.45;
+}
+
+.info-box strong {
+    color: var(--stage);
+}
+
+/* =========================================================
+   PROGRESS
+   ========================================================= */
+
+.progress {
+    position: relative;
+    z-index: 2;
+
+    width: 88%;
+    height: 5px;
+
+    margin: 14px auto;
+
+    background: #142138;
+    border-radius: 10px;
+
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0;
+
+    background: var(--stage);
+
+    box-shadow: 0 0 12px var(--stage);
+}
+
+/* =========================================================
+   CONTROLS
+   ========================================================= */
+
+.controls {
+    position: absolute;
+
+    z-index: 10;
+
+    right: 22px;
+    bottom: 18px;
+
+    display: flex;
+    gap: 8px;
+}
+
+.controls button {
+    border: 1px solid #2a5478;
+
+    background: rgba(12,29,50,.92);
+
+    color: white;
+
+    padding: 8px 12px;
+
+    border-radius: 8px;
+
+    cursor: pointer;
+
+    font-size: 11px;
+}
+
+.controls button:hover {
+    background: #173a5a;
+}
+
+@media(max-width: 650px) {
+
+    body {
+        padding: 5px;
+    }
+
+    .sql-app {
+        width: 100%;
+        border-radius: 15px;
+    }
+
+    header {
+        padding-top: 15px;
+    }
+
+    .visualizer {
+        height: 38%;
+    }
+
+    td,
+    th {
+        padding: 5px 3px;
+    }
+
+    .pipeline {
+        gap: 2px;
+    }
+
+    .stage {
+        min-height: 44px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="sql-app" id="app">
+
+    <!-- =====================================================
+         HEADER
+         ===================================================== -->
+
+    <header>
+        <h1>HOW SQL WORKS</h1>
+        <p>ANIMATED QUERY PROCESSING ENGINE</p>
+    </header>
+
+
+    <!-- =====================================================
+         SQL QUERY
+         ===================================================== -->
+
+    <section class="query-panel">
+
+        <div class="query-top">
+
+            <span class="dot red"></span>
+            <span class="dot yellow"></span>
+            <span class="dot green"></span>
+
+            <span class="query-title">
+                sales_analysis.sql
+            </span>
+
+        </div>
+
+        <div class="query-code">
+
+            <span class="sql-line"
+                  data-clause="SELECT">
+                <span class="keyword">SELECT</span>
+                Department,
+                <span class="function">SUM</span>(Sales)
+                AS Total_Sales
+            </span>
+
+            <span class="sql-line"
+                  data-clause="FROM">
+                <span class="keyword">FROM</span>
+                Employees
+            </span>
+
+            <span class="sql-line"
+                  data-clause="USING / JOIN">
+                <span class="keyword">JOIN</span>
+                Departments
+                <span class="keyword">USING</span>
+                (DepartmentID)
+            </span>
+
+            <span class="sql-line"
+                  data-clause="WHERE">
+                <span class="keyword">WHERE</span>
+                Sales >=
+                <span class="number">50000</span>
+            </span>
+
+            <span class="sql-line"
+                  data-clause="GROUP BY">
+                <span class="keyword">GROUP BY</span>
+                Department
+            </span>
+
+            <span class="sql-line"
+                  data-clause="HAVING">
+                <span class="keyword">HAVING</span>
+                <span class="function">SUM</span>(Sales)
+                >=
+                <span class="number">100000</span>
+            </span>
+
+            <span class="sql-line"
+                  data-clause="ORDER BY">
+                <span class="keyword">ORDER BY</span>
+                Total_Sales DESC;
+            </span>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         SQL PROCESSING PIPELINE
+         ===================================================== -->
+
+    <div class="pipeline" id="pipeline"></div>
+
+
+    <!-- =====================================================
+         DATABASE + ENGINE
+         ===================================================== -->
+
+    <section class="visualizer">
+
+        <div class="table-panel">
+
+            <div class="table-title"
+                 id="tableTitle">
+                SOURCE TABLE — Employees
+            </div>
+
+            <table>
+
+                <thead id="tableHead"></thead>
+
+                <tbody id="tableBody"></tbody>
+
+            </table>
+
+        </div>
+
+
+        <div class="engine-panel">
+
+            <div class="engine-label">
+                SQL ENGINE
+            </div>
+
+            <div class="engine-core">
+                <strong>SQL</strong>
+            </div>
+
+            <div class="current-stage"
+                 id="currentStage">
+                FROM
+            </div>
+
+            <div class="stage-description"
+                 id="description">
+                Locate the source table.
+            </div>
+
+            <div class="data-stream">
+                <span class="packet"></span>
+                <span class="packet"></span>
+                <span class="packet"></span>
+                <span class="packet"></span>
+                <span class="packet"></span>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         EDUCATIONAL NOTES
+         ===================================================== -->
+
+    <section class="explanation">
+
+        <div class="info-box">
+            <strong>WHERE</strong><br>
+            Filters individual rows
+            <em>before</em> grouping occurs.
+        </div>
+
+        <div class="info-box">
+            <strong>HAVING</strong><br>
+            Filters aggregated groups
+            <em>after</em> GROUP BY.
+        </div>
+
+    </section>
+
+
+    <div class="progress">
+        <div class="progress-bar"
+             id="progressBar"></div>
+    </div>
+
+
+    <div class="controls">
+
+        <button id="pauseBtn">
+            Pause
+        </button>
+
+        <button id="restartBtn">
+            Restart
+        </button>
+
+    </div>
+
+</div>
+
+
+<script>
+/* =========================================================
+   DATABASE
+   ========================================================= */
+
+const employees = [
+
+    {
+        employee: "Alice",
+        department: "Sales",
+        sales: 72000
+    },
+
+    {
+        employee: "Bob",
+        department: "IT",
+        sales: 38000
+    },
+
+    {
+        employee: "Carla",
+        department: "Sales",
+        sales: 91000
+    },
+
+    {
+        employee: "David",
+        department: "IT",
+        sales: 67000
+    },
+
+    {
+        employee: "Emma",
+        department: "Finance",
+        sales: 55000
+    },
+
+    {
+        employee: "Frank",
+        department: "Sales",
+        sales: 84000
+    },
+
+    {
+        employee: "Grace",
+        department: "Finance",
+        sales: 63000
+    },
+
+    {
+        employee: "Henry",
+        department: "IT",
+        sales: 76000
+    }
+
+];
+
+
+/* =========================================================
+   SQL STAGES
+   ========================================================= */
+
+const stages = [
+
+    {
+        name: "FROM",
+        color: "#00d7ff",
+        description:
+            "Locate and load the Employees source table."
+    },
+
+    {
+        name: "USING / JOIN",
+        color: "#a95cff",
+        description:
+            "Connect related tables through a shared DepartmentID."
+    },
+
+    {
+        name: "WHERE",
+        color: "#ff477e",
+        description:
+            "Remove individual rows where Sales is below $50,000."
+    },
+
+    {
+        name: "GROUP BY",
+        color: "#ffb52e",
+        description:
+            "Organize the remaining rows into Department groups."
+    },
+
+    {
+        name: "HAVING",
+        color: "#ff693c",
+        description:
+            "Filter groups after SUM(Sales) has been calculated."
+    },
+
+    {
+        name: "SELECT",
+        color: "#00e890",
+        description:
+            "Create the requested Department and Total_Sales columns."
+    },
+
+    {
+        name: "ORDER BY",
+        color: "#ffe34c",
+        description:
+            "Sort the final result from highest to lowest Total_Sales."
+    }
+
+];
+
+
+/* =========================================================
+   ELEMENT REFERENCES
+   ========================================================= */
+
+const app =
+    document.getElementById("app");
+
+const pipeline =
+    document.getElementById("pipeline");
+
+const tableHead =
+    document.getElementById("tableHead");
+
+const tableBody =
+    document.getElementById("tableBody");
+
+const tableTitle =
+    document.getElementById("tableTitle");
+
+const currentStage =
+    document.getElementById("currentStage");
+
+const description =
+    document.getElementById("description");
+
+const progressBar =
+    document.getElementById("progressBar");
+
+const pauseBtn =
+    document.getElementById("pauseBtn");
+
+const restartBtn =
+    document.getElementById("restartBtn");
+
+
+/* =========================================================
+   CREATE PIPELINE
+   ========================================================= */
+
+stages.forEach(stage => {
+
+    const box =
+        document.createElement("div");
+
+    box.className = "stage";
+
+    box.textContent =
+        stage.name;
+
+    pipeline.appendChild(box);
+
+});
+
+
+/* =========================================================
+   MONEY FORMATTER
+   ========================================================= */
+
+function money(value) {
+
+    return new Intl.NumberFormat(
+        "en-US",
+        {
+            style: "currency",
+            currency: "USD",
+            maximumFractionDigits: 0
+        }
+    ).format(value);
+
+}
+
+
+/* =========================================================
+   WHERE
+   ========================================================= */
+
+function whereData() {
+
+    return employees.filter(
+        employee =>
+            employee.sales >= 50000
+    );
+
+}
+
+
+/* =========================================================
+   GROUP BY
+   ========================================================= */
+
+function groupData() {
+
+    const grouped = {};
+
+    whereData().forEach(employee => {
+
+        if (!grouped[employee.department]) {
+
+            grouped[employee.department] = 0;
+
+        }
+
+        grouped[employee.department] +=
+            employee.sales;
+
+    });
+
+
+    return Object.entries(grouped)
+        .map(([department, total]) => ({
+
+            department,
+            total
+
+        }));
+
+}
+
+
+/* =========================================================
+   HAVING
+   ========================================================= */
+
+function havingData() {
+
+    return groupData().filter(
+        row =>
+            row.total >= 100000
+    );
+
+}
+
+
+/* =========================================================
+   ORDER BY
+   ========================================================= */
+
+function orderedData() {
+
+    return [...havingData()]
+        .sort(
+            (a, b) =>
+                b.total - a.total
+        );
+
+}
+
+
+/* =========================================================
+   EMPLOYEE TABLE
+   ========================================================= */
+
+function showEmployees(stageIndex) {
+
+    tableHead.innerHTML = `
+        <tr>
+            <th>Employee</th>
+            <th>Department</th>
+            <th>Sales</th>
+        </tr>
+    `;
+
+    tableBody.innerHTML = "";
+
+
+    employees.forEach((employee, index) => {
+
+        const row =
+            document.createElement("tr");
+
+
+        if (
+            stageIndex >= 2 &&
+            employee.sales < 50000
+        ) {
+
+            row.classList.add(
+                "rejected"
+            );
+
+        }
+
+
+        row.innerHTML = `
+            <td>${employee.employee}</td>
+            <td>${employee.department}</td>
+            <td>${money(employee.sales)}</td>
+        `;
+
+
+        tableBody.appendChild(row);
+
+    });
+
+
+    if (stageIndex === 0) {
+
+        tableTitle.textContent =
+            "FROM → SOURCE TABLE: Employees";
+
+    }
+
+    else if (stageIndex === 1) {
+
+        tableTitle.textContent =
+            "USING / JOIN → CONNECT TABLES";
+
+    }
+
+    else {
+
+        tableTitle.textContent =
+            "WHERE → FILTER ROWS";
+
+    }
+
+}
+
+
+/* =========================================================
+   GROUPED TABLE
+   ========================================================= */
+
+function showGroups(stageIndex) {
+
+    let data;
+
+    if (stageIndex === 3)
+        data = groupData();
+
+    else if (
+        stageIndex === 4 ||
+        stageIndex === 5
+    )
+        data = havingData();
+
+    else
+        data = orderedData();
+
+
+    tableHead.innerHTML = `
+        <tr>
+            <th>Department</th>
+            <th>SUM(Sales)</th>
+        </tr>
+    `;
+
+
+    tableBody.innerHTML = "";
+
+
+    data.forEach((item, index) => {
+
+        const row =
+            document.createElement("tr");
+
+
+        row.innerHTML = `
+            <td>${item.department}</td>
+            <td>${money(item.total)}</td>
+        `;
+
+
+        tableBody.appendChild(row);
+
+    });
+
+
+    const titles = {
+
+        3:
+        "GROUP BY → AGGREGATE DEPARTMENTS",
+
+        4:
+        "HAVING → FILTER GROUPS",
+
+        5:
+        "SELECT → BUILD RESULT",
+
+        6:
+        "ORDER BY → FINAL RESULT"
+
+    };
+
+
+    tableTitle.textContent =
+        titles[stageIndex];
+
+}
+
+
+/* =========================================================
+   HIGHLIGHT QUERY
+   ========================================================= */
+
+function highlightQuery(stageName) {
+
+    document
+        .querySelectorAll(".sql-line")
+        .forEach(line => {
+
+            line.classList.toggle(
+
+                "active",
+
+                line.dataset.clause ===
+                    stageName
+
+            );
+
+        });
+
+}
+
+
+/* =========================================================
+   CURRENT STAGE
+   ========================================================= */
+
+let current = 0;
+
+let paused = false;
+
+let stageStart =
+    performance.now();
+
+const stageDuration = 3500;
+
+
+/* =========================================================
+   UPDATE STAGE
+   ========================================================= */
+
+function updateStage() {
+
+    const stage =
+        stages[current];
+
+
+    app.style.setProperty(
+        "--stage",
+        stage.color
+    );
+
+
+    currentStage.textContent =
+        stage.name;
+
+
+    description.textContent =
+        stage.description;
+
+
+    /* Pipeline */
+
+    document
+        .querySelectorAll(".stage")
+        .forEach((box, index) => {
+
+            box.classList.toggle(
+                "active",
+                index === current
+            );
+
+        });
+
+
+    /* SQL query */
+
+    highlightQuery(
+        stage.name
+    );
+
+
+    /* Table */
+
+    if (current <= 2) {
+
+        showEmployees(
+            current
+        );
+
+    }
+
+    else {
+
+        showGroups(
+            current
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   ANIMATION LOOP
+   ========================================================= */
+
+function animate(time) {
+
+    if (!paused) {
+
+        const elapsed =
+            time - stageStart;
+
+
+        const progress =
+            Math.min(
+                elapsed / stageDuration,
+                1
+            );
+
+
+        progressBar.style.width =
+            (progress * 100) + "%";
+
+
+        if (elapsed >= stageDuration) {
+
+            current =
+                (current + 1)
+                % stages.length;
+
+
+            stageStart = time;
+
+
+            updateStage();
+
+        }
+
+    }
+
+
+    requestAnimationFrame(
+        animate
+    );
+
+}
+
+
+/* =========================================================
+   PAUSE
+   ========================================================= */
+
+pauseBtn.addEventListener(
+    "click",
+    () => {
+
+        paused = !paused;
+
+        pauseBtn.textContent =
+            paused
+            ? "Play"
+            : "Pause";
+
+
+        if (!paused) {
+
+            stageStart =
+                performance.now();
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   RESTART
+   ========================================================= */
+
+restartBtn.addEventListener(
+    "click",
+    () => {
+
+        current = 0;
+
+        paused = false;
+
+        pauseBtn.textContent =
+            "Pause";
+
+        stageStart =
+            performance.now();
+
+        progressBar.style.width =
+            "0%";
+
+        updateStage();
+
+    }
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+updateStage();
+
+requestAnimationFrame(
+    animate
+);
+
+</script>
+
+</body>
+</html>
